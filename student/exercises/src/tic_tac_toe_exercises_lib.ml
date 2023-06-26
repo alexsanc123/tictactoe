@@ -86,10 +86,21 @@ let available_moves
 let evaluate ~(game_kind : Game_kind.t) ~(pieces : Piece.t Position.Map.t)
   : Evaluation.t
   =
-  ignore pieces;
-  ignore game_kind;
-  failwith "Implement me!"
-;;
+  let taken_positions = Map.vals pieces in
+  taken_positions_with_neighbors = List.filter taken_positions ~f:(fun position -> 
+    let left_position = Position.left position in
+    let right_position = Position.right position in
+    if in_bounds ~game_kind left_position && in_bounds ~game_kind right_position then
+      if Map.find pieces )
+  
+;; 
+
+let same_type ~game_kind ~pieces group_of_pieces piece_type =
+  List.for_all group_of_pieces ~f(fun: position -> 
+    match (Map.find pieces position) with 
+      |Some piece_to_check -> Piece.equal piece_to_check piece_type 
+      |None -> False) 
+    
 
 (* Exercise 3. *)
 let winning_moves
