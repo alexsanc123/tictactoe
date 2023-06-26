@@ -83,11 +83,11 @@ the "Answer board" below:
 Answer board:
 
 ```
- - | - | - 
+ 0 | - | 0 
 ___|___|___
- - | - | - 
+ - | X | - 
 ___|___|___
- - | - | - 
+ X | X | 0 
 ```
 
 After you've answered look for a fellow fellow near you and discuss your
