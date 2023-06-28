@@ -165,9 +165,9 @@ let winning_moves
   List.filter avail_moves ~f:(fun position ->
     let executed_move = Map.set pieces ~key:position ~data:me in
     match evaluate ~game_kind ~pieces:executed_move with
-    | Evaluation.Game_continues -> false
-    | Evaluation.Illegal_state -> false
-    | _ -> true)
+    | Evaluation.Game_over { winner = Some x } ->
+      if Piece.equal x me then true else false
+    | _ -> false)
 ;;
 
 (* Exercise 4. *)
@@ -355,7 +355,6 @@ let%expect_test "print_losing" =
       ~me:Piece.O
   in
   print_s [%sexp (positions : Position.t list)];
-  [%expect
-    {|
+  [%expect {|
   (((row 1) (column 1))) |}]
 ;;
