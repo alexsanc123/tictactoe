@@ -87,17 +87,12 @@ let available_moves
 let up_right position = Position.up position |> Position.right
 let down_right position = Position.down position |> Position.right
 
-let get_groups game_kind (direction : Position.t -> Position.t) =
+let get_groups game_kind pieces (direction : Position.t -> Position.t) =
   (*Depending on a given direction and type of board, can discover the groups
     of pieces that are eligible to win the game for that board.*)
-  let length = Game_kind.board_length game_kind in
-  let num_to_win = Game_kind.win_length game_kind in
-  let all_positions =
-    List.concat_map (List.range 0 length) ~f:(fun row ->
-      List.map (List.range 0 length) ~f:(fun column ->
-        { Position.row; Position.column }))
-  in
-  List.map all_positions ~f:(fun position ->
+  let num_to_win = Game_kind.win_length game_kind - 1 in
+  let taken_positions = Map.keys pieces in
+  List.map taken_positions ~f:(fun position ->
     let traversals_index = List.init num_to_win ~f:Fn.id in
     List.fold traversals_index ~init:[ position ] ~f:(fun position_sofar _ ->
       let moved_position = direction (List.hd_exn position_sofar) in
@@ -127,24 +122,26 @@ let evaluate ~(game_kind : Game_kind.t) ~(pieces : Piece.t Position.Map.t)
   let horizontal_group_result =
     List.filter_opt
       (List.map
-         (get_groups game_kind Position.right)
+         (get_groups game_kind pieces Position.right)
          ~f:(fun position_group -> same_type ~pieces position_group))
   in
   let vertical_group_result =
     List.filter_opt
       (List.map
-         (get_groups game_kind Position.down)
+         (get_groups game_kind pieces Position.down)
          ~f:(fun position_group -> same_type ~pieces position_group))
   in
   let leftdiaagonal_group_result =
     List.filter_opt
-      (List.map (get_groups game_kind down_right) ~f:(fun position_group ->
-         same_type ~pieces position_group))
+      (List.map
+         (get_groups game_kind pieces down_right)
+         ~f:(fun position_group -> same_type ~pieces position_group))
   in
   let rightdiagonal_group_result =
     List.filter_opt
-      (List.map (get_groups game_kind up_right) ~f:(fun position_group ->
-         same_type ~pieces position_group))
+      (List.map
+         (get_groups game_kind pieces up_right)
+         ~f:(fun position_group -> same_type ~pieces position_group))
   in
   let all_results =
     horizontal_group_result
@@ -164,10 +161,13 @@ let winning_moves
   ~(pieces : Piece.t Position.Map.t)
   : Position.t list
   =
-  ignore me;
-  ignore game_kind;
-  ignore pieces;
-  failwith "Implement me!"
+  let avail_moves = available_moves ~game_kind ~pieces in
+  List.filter avail_moves ~f:(fun position ->
+    let executed_move = Map.set pieces ~key:position ~data:me in
+    match evaluate ~game_kind ~pieces:executed_move with
+    | Evaluation.Game_continues -> false
+    | Evaluation.Illegal_state -> false
+    | _ -> true)
 ;;
 
 (* Exercise 4. *)
@@ -307,7 +307,7 @@ let%expect_test "evalulate_win_for_x" =
   print_endline
     (evaluate ~game_kind:win_for_x.game_kind ~pieces:win_for_x.pieces
      |> Evaluation.to_string);
-  [%expect {| (Win (X)) |}]
+  [%expect {| (Game_over(winner(X))) |}]
 ;;
 
 let%expect_test "evalulate_non_win" =
@@ -319,12 +319,25 @@ let%expect_test "evalulate_non_win" =
 
 (* When you've implemented the [winning_moves] function, uncomment this
    test! *)
-(*let%expect_test "winning_move" = let positions = winning_moves
-  ~game_kind:non_win.game_kind ~pieces:non_win.pieces ~me:Piece.X in print_s
-  [%sexp (positions : Position.t list)]; [%expect {| ((((row 1) (column 1))))
-  |}]; let positions = winning_moves ~game_kind:non_win.game_kind
-  ~pieces:non_win.pieces ~me:Piece.O in print_s [%sexp (positions :
-  Position.t list)]; [%expect {| () |}] ;;*)
+let%expect_test "winning_move" =
+  let positions =
+    winning_moves
+      ~game_kind:non_win.game_kind
+      ~pieces:non_win.pieces
+      ~me:Piece.X
+  in
+  print_s [%sexp (positions : Position.t list)];
+  [%expect {| (((row 1) (column 1)))
+  |}];
+  let positions =
+    winning_moves
+      ~game_kind:non_win.game_kind
+      ~pieces:non_win.pieces
+      ~me:Piece.O
+  in
+  print_s [%sexp (positions : Position.t list)];
+  [%expect {| () |}]
+;;
 
 (* When you've implemented the [losing_moves] function, uncomment this
    test! *)
