@@ -84,63 +84,78 @@ let available_moves
    After you are done with this implementation, you can uncomment out
    "evaluate" test cases found below in this file. *)
 
-   let up_right position =
-    Position.up position |> Position.right 
+let up_right position = Position.up position |> Position.right
+let down_right position = Position.down position |> Position.right
 
-   let down_right position =
-    Position.down position |> Position.right 
-   
-   let get_groups game_kind (direction : Position.t -> Position.t) = 
-    (*Depending on a given direction and type of board, can discover the groups of pieces that are eligible to win the game for that board.*)
-    let length = Game_kind.board_length game_kind in
-    let num_to_win = Game_kind.win_length game_kind in 
-    let all_positions =  
-      (List.concat_map (List.range 0 length) ~f:(fun row -> List.map (List.range 0 length) ~f:(fun column -> { Position.row; Position.column }))) in 
-    
-    (List.map all_positions ~f:(fun position -> 
-      let traversals_index = List.init num_to_win ~f:Fn.id in
-      List.fold traversals_index ~init: [position] ~f:(fun position_sofar _ -> 
-        let moved_position = direction (List.hd_exn position_sofar) in
-        moved_position :: position_sofar)))
-    ;;
-  
-
-  let same_type ~pieces group_of_pieces= 
-    (*Given a group of pieces and a piece type, checks to see if they are all of the same type within the board*)
-    
-    match Map.find pieces (List.hd_exn group_of_pieces) with
-    |None -> None
-    |Some piece_type -> let is_same = (List.for_all group_of_pieces ~f:(fun position -> 
-     match (Map.find pieces position) with
-     |Some piece_to_check -> Piece.equal piece_to_check piece_type 
-     |None -> false)) in
-     match is_same with
-     |true -> Some piece_type
-     |false -> None
-
-   let evaluate ~(game_kind : Game_kind.t) ~(pieces : Piece.t Position.Map.t)
-  : Evaluation.t
-  =
-  (* Creates a List of lists of positions, and feeds it into same_type helper function to se if anything has won or not. *)
-  let horizontal_group_result = List.map (get_groups game_kind Position.right) ~f:(fun position_group -> same_type ~pieces position_group) in
-  let vertical_group_result = List.map (get_groups game_kind Position.down) ~f:(fun position_group -> same_type ~pieces position_group) in
-  let leftdiaagonal_group_result = List.map (get_groups game_kind down_right) ~f:(fun position_group -> same_type ~pieces position_group) in
-  let rightdiagonal_group_result = List.map (get_groups game_kind up_right) ~f:(fun position_group -> same_type ~pieces position_group) in
-  
-
-  match horizontal_group_result with 
-  | Some Piece.t -> Evaluation.Game_over of {winner: horizontal_group_result}
-  | None -> match vertical_group_result with 
-            | Some Piece.t -> Evaluation.Game_over of {winner: vertical_group_result}
-            | None -> match leftdiaagonal_group_result with
-                      | Some Piece.t -> Evaluation.Game_over of {winner: leftdiaagonal_group_result}
-                      | None -> match rightdiagonal_group_result with
-                                | Some Piece.t -> Evaluation.Game_over of {winner: rightdiagonal_group_result}
-                                | None -> Evaluation.Game_continues
-                
+let get_groups game_kind (direction : Position.t -> Position.t) =
+  (*Depending on a given direction and type of board, can discover the groups
+    of pieces that are eligible to win the game for that board.*)
+  let length = Game_kind.board_length game_kind in
+  let num_to_win = Game_kind.win_length game_kind in
+  let all_positions =
+    List.concat_map (List.range 0 length) ~f:(fun row ->
+      List.map (List.range 0 length) ~f:(fun column ->
+        { Position.row; Position.column }))
+  in
+  List.map all_positions ~f:(fun position ->
+    let traversals_index = List.init num_to_win ~f:Fn.id in
+    List.fold traversals_index ~init:[ position ] ~f:(fun position_sofar _ ->
+      let moved_position = direction (List.hd_exn position_sofar) in
+      moved_position :: position_sofar))
 ;;
 
+let same_type ~pieces group_of_pieces =
+  (*Given a group of pieces and a piece type, checks to see if they are all
+    of the same type within the board*)
+  match Map.find pieces (List.hd_exn group_of_pieces) with
+  | None -> None
+  | Some piece_type ->
+    let is_same =
+      List.for_all group_of_pieces ~f:(fun position ->
+        match Map.find pieces position with
+        | Some piece_to_check -> Piece.equal piece_to_check piece_type
+        | None -> false)
+    in
+    (match is_same with true -> Some piece_type | false -> None)
+;;
 
+let evaluate ~(game_kind : Game_kind.t) ~(pieces : Piece.t Position.Map.t)
+  : Evaluation.t
+  =
+  (* Creates a List of lists of positions, and feeds it into same_type helper
+     function to se if anything has won or not. *)
+  let horizontal_group_result =
+    List.filter_opt
+      (List.map
+         (get_groups game_kind Position.right)
+         ~f:(fun position_group -> same_type ~pieces position_group))
+  in
+  let vertical_group_result =
+    List.filter_opt
+      (List.map
+         (get_groups game_kind Position.down)
+         ~f:(fun position_group -> same_type ~pieces position_group))
+  in
+  let leftdiaagonal_group_result =
+    List.filter_opt
+      (List.map (get_groups game_kind down_right) ~f:(fun position_group ->
+         same_type ~pieces position_group))
+  in
+  let rightdiagonal_group_result =
+    List.filter_opt
+      (List.map (get_groups game_kind up_right) ~f:(fun position_group ->
+         same_type ~pieces position_group))
+  in
+  let all_results =
+    horizontal_group_result
+    @ vertical_group_result
+    @ leftdiaagonal_group_result
+    @ rightdiagonal_group_result
+  in
+  match all_results with
+  | piece :: _ -> Evaluation.Game_over { winner = Some piece }
+  | [] -> Evaluation.Game_continues
+;;
 
 (* Exercise 3. *)
 let winning_moves
@@ -288,13 +303,19 @@ let%expect_test "no available_moves" =
 
 (* When you've implemented the [evaluate] function, uncomment the next two
    tests! *)
-(* let%expect_test "evalulate_win_for_x" = print_endline (evaluate
-   ~game_kind:win_for_x.game_kind ~pieces:win_for_x.pieces |>
-   Evaluation.to_string); [%expect {| (Win (X)) |}] ;;
+let%expect_test "evalulate_win_for_x" =
+  print_endline
+    (evaluate ~game_kind:win_for_x.game_kind ~pieces:win_for_x.pieces
+     |> Evaluation.to_string);
+  [%expect {| (Win (X)) |}]
+;;
 
-   let%expect_test "evalulate_non_win" = print_endline (evaluate
-   ~game_kind:non_win.game_kind ~pieces:non_win.pieces |>
-   Evaluation.to_string); [%expect {| Game_continues |}] ;; *)
+let%expect_test "evalulate_non_win" =
+  print_endline
+    (evaluate ~game_kind:non_win.game_kind ~pieces:non_win.pieces
+     |> Evaluation.to_string);
+  [%expect {| Game_continues |}]
+;;
 
 (* When you've implemented the [winning_moves] function, uncomment this
    test! *)
