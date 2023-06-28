@@ -35,14 +35,16 @@ let pick_winning_move_if_possible_strategy
   ~(pieces : Piece.t Position.Map.t)
   : Position.t
   =
-  ignore me;
-  ignore game_kind;
-  ignore pieces;
-  failwith "Implement me!"
+  let winning =
+    Tic_tac_toe_exercises_lib.winning_moves ~me ~game_kind ~pieces
+  in
+  match List.is_empty winning with
+  | true -> random_move_strategy ~game_kind ~pieces
+  | false -> List.random_element_exn winning
 ;;
 
-(* disables unused warning. Feel free to delete once it's used. *)
-let _ = pick_winning_move_if_possible_strategy
+(* disables unused warning. Feel free to delete once it's used. let _ =
+   pick_winning_move_if_possible_strategy *)
 
 (* Exercise 4.2.
 
@@ -57,10 +59,12 @@ let pick_winning_move_or_block_if_possible_strategy
   ~(pieces : Piece.t Position.Map.t)
   : Position.t
   =
-  ignore me;
-  ignore game_kind;
-  ignore pieces;
-  failwith "Implement me!"
+  let losing =
+    Tic_tac_toe_exercises_lib.losing_moves ~me ~game_kind ~pieces
+  in
+  match List.is_empty losing with
+  | false -> List.random_element_exn losing
+  | true -> pick_winning_move_if_possible_strategy ~me ~game_kind ~pieces
 ;;
 
 (* disables unused warning. Feel free to delete once it's used. *)
@@ -92,8 +96,7 @@ let _ = score
 let compute_next_move ~(me : Piece.t) ~(game_state : Game_state.t)
   : Position.t
   =
-  ignore me;
   let pieces = game_state.pieces in
   let game_kind = game_state.game_kind in
-  random_move_strategy ~game_kind ~pieces
+  pick_winning_move_or_block_if_possible_strategy ~me ~game_kind ~pieces
 ;;
