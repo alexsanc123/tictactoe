@@ -128,14 +128,16 @@ let available_moves
   let rightdiagonal_group_result = List.map (get_groups game_kind up_right) ~f:(fun position_group -> same_type ~pieces position_group) in
   
 
-  if horizontal_group_result not None then (Evaluation.Game_over of {winner: horizontal_group_result} ) else
-    if vertical_group_result not None then (Evaluation.Game_over of {winner: vertical_group_result} ) else
-      if leftdiaagonal_group_result not None then (Evaluation.Game_over of {winner: leftdiaagonal_group_result} ) else
-        if rightdiagonal_group_result not None then (Evaluation.Game_over of {winner: rightdiagonal_group_result} ) else
-          Evaluation.Game_continues
-                  
-  
-
+  match horizontal_group_result with 
+  | Some Piece.t -> Evaluation.Game_over of {winner: horizontal_group_result}
+  | None -> match vertical_group_result with 
+            | Some Piece.t -> Evaluation.Game_over of {winner: vertical_group_result}
+            | None -> match leftdiaagonal_group_result with
+                      | Some Piece.t -> Evaluation.Game_over of {winner: leftdiaagonal_group_result}
+                      | None -> match rightdiagonal_group_result with
+                                | Some Piece.t -> Evaluation.Game_over of {winner: rightdiagonal_group_result}
+                                | None -> Evaluation.Game_continues
+                
 ;;
 
 
