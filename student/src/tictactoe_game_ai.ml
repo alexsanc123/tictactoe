@@ -103,56 +103,95 @@ let _ = score
    isn't yet over, so feel free to raise in cases where there are no
    available spots to pick. *)
 
+let rec minimax_helper
+  ~(me : Piece.t)
+  ~(depth : int)
+  ~(game_kind : Game_kind.t)
+  ~(pieces : Piece.t Position.Map.t)
+  : float
+  =
+  let current_score = score ~me ~game_kind ~pieces in
+  let avail_moves =
+    Tic_tac_toe_exercises_lib.available_moves ~game_kind ~pieces
+  in
+  if (not (Float.equal current_score 0.0))
+     || depth = 0
+     || List.is_empty avail_moves
+  then current_score *. -1.
+  else (
+    let bestscore, _bestmove =
+      List.fold
+        avail_moves
+        ~init:(0., None)
+        ~f:(fun (some_score, some_pos) current_pos ->
+        let new_score =
+          minimax_helper
+            ~me:(Piece.flip me)
+            ~depth:(depth - 1)
+            ~game_kind
+            ~pieces:(Map.set pieces ~key:current_pos ~data:me)
+        in
+        if Float.( >= ) new_score some_score
+        then new_score, Some current_pos
+        else some_score, some_pos)
+    in
+    bestscore *. -1.0)
+;;
+
+let minimax
+  ~(me : Piece.t)
+  ~(game_kind : Game_kind.t)
+  ~(pieces : Piece.t Position.Map.t)
+  : Position.t
+  =
+  let _current_score = score ~game_kind ~pieces in
+  let avail_moves =
+    Tic_tac_toe_exercises_lib.available_moves ~game_kind ~pieces
+  in
+  let _best_score, best_move =
+    List.fold
+      avail_moves
+      ~init:(0.0, None)
+      ~f:(fun (highestscore, highestmove) pos ->
+      let inprogresscalc =
+        minimax_helper
+          ~me:(Piece.flip me)
+          ~game_kind
+          ~depth:6
+          ~pieces:(Map.set pieces ~key:pos ~data:me)
+      in
+      if Float.( >= ) inprogresscalc highestscore
+      then inprogresscalc, Some pos
+      else highestscore, highestmove)
+  in
+  match best_move with
+  | None -> { Position.row = 0; column = 0 }
+  | Some pos -> pos
+;;
+
 let compute_next_move ~(me : Piece.t) ~(game_state : Game_state.t)
   : Position.t
   =
   let pieces = game_state.pieces in
   let game_kind = game_state.game_kind in
-  pick_winning_move_or_block_if_possible_strategy ~me ~game_kind ~pieces
-
-
+  (* pick_winning_move_or_block_if_possible_strategy ~me ~game_kind
+     ~pieces *)
+  minimax ~me ~game_kind ~pieces
 ;;
 
+(* let max_player = match game_status with | Turn_of Some x -> if Piece.equal
+   x me then true else false | _ -> false in let which_piece = if max_player
+   then me else Piece.flip me in if current_score <> 0.0 || List.is_empty
+   avail_moves then current_score else let moves_with_scores = List.map
+   avail_moves ~f:(fun position -> (let score = (minimax_helper ~which_piece
+   ~depth:6 ~game_kind ~pieces: Map.set pieces ~key:position ~data:
+   which_piece) in (position, score)) in let best_move = if max_player then
+   List.max_elt moves_with_scores ~compare:() else List.min_elt
+   moves_with_scores ~compare:() in best_move
 
-let are_moves_left ~game_kind ~pieces =
-  List.is_empty (Tic_tac_toe_exercises_lib.available_moves ~game_kind ~pieces) ;;
+   ;; *)
 
-
-
-let rec minimax 
-~(depth: int)
-~(me: Piece.t)
-~(game_state : Game_state.t) 
-= 
-match Tic_tac_toe_exercises_lib.evaluate ~game_kind:game_state.game_kind ~pieces: game_state.pieces with
-| Tic_tac_toe_exercises_lib.Evaluation.Game_over {winner = Some x} -> (score ~me:x ~game_kind:game_state.game_kind ~pieces:game_state.pieces)
-| _ -> (if ~depth = 0 then (score ~me:x ~game_kind:game_state.game_kind ~pieces:game_state.pieces) 
-                      else (if 
-                        (are_moves_left ~game_kind:game_state.game_kind ~pieces:game_state.pieces) 
-                        then (let avail_moves = Tic_tac_toe_exercises_lib.available_moves ~game_kind:game_state.game_kind ~pieces:game_state.pieces in 
-                        let current_score = score ~me:x ~game_kind:game_state.game_kind ~pieces:game_state.pieces in 
-                        List.map avail_moves ~f:(fun position -> (let new_board = Map.set ~pieces ~key: position ~data:me 
-                      in score ~me:x ~game_kind:game_state.game_kind ~pieces:new_board)
-                      )) 
-                      else score ~me:x ~game_kind:game_state.game_kind ~pieces:game_state.pieces))
-
-
-
-
-let current_score = score ~game_kind ~pieces in
-match current_score <> 0.0 with 
-| true -> current_score
-| false -> 
-  match are_moves_left ~game_kind ~pieces with
-  | false -> 0.0
-  | true -> if is_maximizing_player then 
-
-
-
-;;
-
-
-let optimal ~game_kind ~pieces =
-  let avail_moves = (Tic_tac_toe_exercises_lib.available_moves ~game_kind ~pieces) in
-  let new_position_value = List.map avail_moves ~f:(fun positon -> (minimax ~depth:0.0 ~is_maximizing_player:false ~game_kind ~pieces))
-
+(* let optimal ~game_kind ~pieces = let avail_moves =
+   (Tic_tac_toe_exercises_lib.available_moves ~game_kind ~pieces) in let
+   new_position_value = List.map avail_moves ~f:(fun positon -> (minimax
+   ~depth:0.0 ~is_maximizing_player:false ~game_kind ~pieces)) *)

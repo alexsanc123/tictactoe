@@ -400,7 +400,7 @@ and your "hostname" would be the output of `curl http://169.254.169.254/latest/m
 Let's play your strategy against itself!
 
 ```sh
-tictactoe$ _build/default/student/bin/game_ai.exe create-game-and-play-against-self -game-kind Tic_tac_toe -host $GAME_SERVER_HOST -username $FAVORITE_POKEMON -port $GAME_SERVER_PORT
+tictactoe$ _build/default/student/bin/game_ai.exe create-game-and-play -game-kind Tic_tac_toe -host 'ec2-3-215-240-47.compute-1.amazonaws.com' -username 'pikachu' -port 8181
 ```
 You'll see your game being played inside of
 [http://ec2-3-215-240-47.compute-1.amazonaws.com:8181/](http://ec2-3-215-240-47.compute-1.amazonaws.com:8181/)
